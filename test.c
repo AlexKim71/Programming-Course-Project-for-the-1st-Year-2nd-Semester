@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Структура для товару веломагазину
+// Structure for the product in the bike shop
 typedef struct Product {
     char manufacturer[100];
     char bike_brand[100];
@@ -14,29 +14,31 @@ typedef struct Product {
     struct Product* next;
 } Product;
 
-// Прототипы функций
-void freeProducts(Product* head);
-void displayMenu();
+// Function prototypes
 Product* createProduct(char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity);
-void addProduct(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity);
+void addToHead(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity);
+void addToTail(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity);
 void printProducts(Product* head);
-void deleteProduct(Product** head, char bike_brand[]);
-void editProduct(Product* head, char bike_brand[], char new_manufacturer[], char new_bike_brand[], int new_quantity, char new_delivery_date[],
-float new_unit_price, int new_sold_quantity);
+void deleteFromHead(Product** head, Product** tail);
+void deleteFromTail(Product** head, Product** tail);
+void deleteByBikeBrand(Product** head, Product** tail, char bike_brand[]);
+void editProduct(Product* head, char bike_brand[], char new_manufacturer[], char new_bike_brand[], int new_quantity, char new_delivery_date[], float new_unit_price, int new_sold_quantity);
 void searchByManufacturer(Product* head, char manufacturer[]);
 void searchByDate(Product* head, char delivery_date[]);
 void searchByBikeBrand(Product* head, char bike_brand[]);
 void printAvailableProducts(Product* head);
-float calculateTotalCostByManufacturer(Product* head, char manufacturer[]);   
+float calculateTotalCostByManufacturer(Product* head, char manufacturer[]);
 float calculateTotalSoldCost(Product* head);
-void sortByPrice(Product** head);
+void sortByPrice(Product** head, Product** tail);
 void swapNodes(Product* a, Product* b);
-// 
-// Функция для создания нового товара
+void freeProducts(Product* head);
+void displayMenu();
+
+// Function to create a new product
 Product* createProduct(char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity) {
     Product* newProduct = (Product*)malloc(sizeof(Product));
     if (!newProduct) {
-        printf("Ошибка выделения памяти\n");
+        printf("Memory allocation error\n");
         exit(1);
     }
     strcpy(newProduct->manufacturer, manufacturer);
@@ -50,8 +52,21 @@ Product* createProduct(char manufacturer[], char bike_brand[], int quantity, cha
     return newProduct;
 }
 
-// Функция для добавления товара в конец списка
-void addProduct(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity) {
+// Function to add a product to the head of the deque
+void addToHead(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity) {
+    Product* newProduct = createProduct(manufacturer, bike_brand, quantity, delivery_date, unit_price, sold_quantity);
+    if (*head == NULL) {
+        *head = newProduct;
+        *tail = newProduct;
+    } else {
+        newProduct->next = *head;
+        (*head)->prev = newProduct;
+        *head = newProduct;
+    }
+}
+
+// Function to add a product to the tail of the deque
+void addToTail(Product** head, Product** tail, char manufacturer[], char bike_brand[], int quantity, char delivery_date[], float unit_price, int sold_quantity) {
     Product* newProduct = createProduct(manufacturer, bike_brand, quantity, delivery_date, unit_price, sold_quantity);
     if (*head == NULL) {
         *head = newProduct;
@@ -63,32 +78,64 @@ void addProduct(Product** head, Product** tail, char manufacturer[], char bike_b
     }
 }
 
-// Функция для вывода всех товаров
+// Function to print all products
 void printProducts(Product* head) {
     if (head == NULL) {
-        printf("Список товаров пуст\n");
+        printf("Product list is empty\n");
         return;
     }
     Product* temp = head;
     while (temp != NULL) {
-        printf("Производитель: %s\n", temp->manufacturer);
-        printf("Марка велосипеда: %s\n", temp->bike_brand);
-        printf("Количество: %d\n", temp->quantity);
-        printf("Дата поставки: %s\n", temp->delivery_date);
-        printf("Цена за единицу: %.2f\n", temp->unit_price);
-        printf("Количество проданного товара: %d\n\n", temp->sold_quantity);
+        printf("Manufacturer: %s\n", temp->manufacturer);
+        printf("Bike Brand: %s\n", temp->bike_brand);
+        printf("Quantity: %d\n", temp->quantity);
+        printf("Delivery Date: %s\n", temp->delivery_date);
+        printf("Unit Price: %.2f\n", temp->unit_price);
+        printf("Sold Quantity: %d\n\n", temp->sold_quantity);
         temp = temp->next;
     }
 }
 
-// Функция для удаления товара по марке велосипеда
-void deleteProduct(Product** head, char bike_brand[]) {
+// Function to delete a product from the head of the deque
+void deleteFromHead(Product** head, Product** tail) {
+    if (*head == NULL) {
+        printf("Product list is empty\n");
+        return;
+    }
+    Product* temp = *head;
+    *head = (*head)->next;
+    if (*head != NULL) {
+        (*head)->prev = NULL;
+    } else {
+        *tail = NULL;
+    }
+    free(temp);
+}
+
+// Function to delete a product from the tail of the deque
+void deleteFromTail(Product** head, Product** tail) {
+    if (*head == NULL) {
+        printf("Product list is empty\n");
+        return;
+    }
+    Product* temp = *tail;
+    *tail = (*tail)->prev;
+    if (*tail != NULL) {
+        (*tail)->next = NULL;
+    } else {
+        *head = NULL;
+    }
+    free(temp);
+}
+
+// Function to delete a product by bike brand
+void deleteByBikeBrand(Product** head, Product** tail, char bike_brand[]) {
     Product* temp = *head;
     while (temp != NULL && strcmp(temp->bike_brand, bike_brand) != 0) {
         temp = temp->next;
     }
     if (temp == NULL) {
-        printf("Товар с маркой %s не найден\n", bike_brand);
+        printf("Product with bike brand %s not found\n", bike_brand);
         return;
     }
     if (temp->prev != NULL) {
@@ -98,110 +145,111 @@ void deleteProduct(Product** head, char bike_brand[]) {
     }
     if (temp->next != NULL) {
         temp->next->prev = temp->prev;
+    } else {
+        *tail = temp->prev;
     }
     free(temp);
-    printf("Товар %s удален\n", bike_brand);
+    printf("Product %s deleted\n", bike_brand);
 }
 
-// Функция для редактирования данных товара
+// Function to edit a product
 void editProduct(Product* head, char bike_brand[], char new_manufacturer[], char new_bike_brand[], int new_quantity, char new_delivery_date[], float new_unit_price, int new_sold_quantity) {
     Product* temp = head;
     while (temp != NULL && strcmp(temp->bike_brand, bike_brand) != 0) {
         temp = temp->next;
     }
     if (temp == NULL) {
-        printf("Товар с маркой %s не найден\n", bike_brand);
+        printf("Product with bike brand %s not found\n", bike_brand);
         return;
     }
-    
     strcpy(temp->manufacturer, new_manufacturer);
     strcpy(temp->bike_brand, new_bike_brand);
     temp->quantity = new_quantity;
     strcpy(temp->delivery_date, new_delivery_date);
     temp->unit_price = new_unit_price;
     temp->sold_quantity = new_sold_quantity;
-    printf("Данные товара %s обновлены\n", bike_brand);
+    printf("Product %s updated\n", bike_brand);
 }
 
-// Функция для поиска товаров по производителю
+// Function to search for products by manufacturer
 void searchByManufacturer(Product* head, char manufacturer[]) {
     Product* temp = head;
     int found = 0;
     while (temp != NULL) {
         if (strcmp(temp->manufacturer, manufacturer) == 0) {
-            printf("Производитель: %s\n", temp->manufacturer);
-            printf("Марка велосипеда: %s\n", temp->bike_brand);
-            printf("Количество: %d\n", temp->quantity);
-            printf("Дата поставки: %s\n", temp->delivery_date);
-            printf("Цена за единицу: %.2f\n", temp->unit_price);
-            printf("Количество проданного товара: %d\n\n", temp->sold_quantity);
+            printf("Manufacturer: %s\n", temp->manufacturer);
+            printf("Bike Brand: %s\n", temp->bike_brand);
+            printf("Quantity: %d\n", temp->quantity);
+            printf("Delivery Date: %s\n", temp->delivery_date);
+            printf("Unit Price: %.2f\n", temp->unit_price);
+            printf("Sold Quantity: %d\n\n", temp->sold_quantity);
             found = 1;
         }
         temp = temp->next;
     }
     if (!found)
-        printf("Товары производителя %s не найдены\n", manufacturer);
+        printf("Products by manufacturer %s not found\n", manufacturer);
 }
 
-// Функция для поиска товаров по дате поставки
+// Function to search for products by delivery date
 void searchByDate(Product* head, char delivery_date[]) {
     Product* temp = head;
     int found = 0;
     while (temp != NULL) {
         if (strcmp(temp->delivery_date, delivery_date) == 0) {
-            printf("Производитель: %s\n", temp->manufacturer);
-            printf("Марка велосипеда: %s\n", temp->bike_brand);
-            printf("Количество: %d\n", temp->quantity);
-            printf("Дата поставки: %s\n", temp->delivery_date);
-            printf("Цена за единицу: %.2f\n", temp->unit_price);
-            printf("Количество проданного товара: %d\n\n", temp->sold_quantity);
+            printf("Manufacturer: %s\n", temp->manufacturer);
+            printf("Bike Brand: %s\n", temp->bike_brand);
+            printf("Quantity: %d\n", temp->quantity);
+            printf("Delivery Date: %s\n", temp->delivery_date);
+            printf("Unit Price: %.2f\n", temp->unit_price);
+            printf("Sold Quantity: %d\n\n", temp->sold_quantity);
             found = 1;
         }
         temp = temp->next;
     }
     if (!found)
-        printf("Товары с датой поставки %s не найдены\n", delivery_date);
+        printf("Products with delivery date %s not found\n", delivery_date);
 }
 
-// Функция для поиска товара по марке велосипеда
+// Function to search for a product by bike brand
 void searchByBikeBrand(Product* head, char bike_brand[]) {
     Product* temp = head;
     while (temp != NULL) {
         if (strcmp(temp->bike_brand, bike_brand) == 0) {
-            printf("Производитель: %s\n", temp->manufacturer);
-            printf("Марка велосипеда: %s\n", temp->bike_brand);
-            printf("Количество: %d\n", temp->quantity);
-            printf("Дата поставки: %s\n", temp->delivery_date);
-            printf("Цена за единицу: %.2f\n", temp->unit_price);
-            printf("Количество проданного товара: %d\n\n", temp->sold_quantity);
+            printf("Manufacturer: %s\n", temp->manufacturer);
+            printf("Bike Brand: %s\n", temp->bike_brand);
+            printf("Quantity: %d\n", temp->quantity);
+            printf("Delivery Date: %s\n", temp->delivery_date);
+            printf("Unit Price: %.2f\n", temp->unit_price);
+            printf("Sold Quantity: %d\n\n", temp->sold_quantity);
             return;
         }
         temp = temp->next;
     }
-    printf("Товар с маркой %s не найден\n", bike_brand);
+    printf("Product with bike brand %s not found\n", bike_brand);
 }
 
-// Функция для вывода товаров, которые есть в наличии
+// Function to print available products
 void printAvailableProducts(Product* head) {
     Product* temp = head;
     int found = 0;
     while (temp != NULL) {
         if (temp->quantity > 0) {
-            printf("Производитель: %s\n", temp->manufacturer);
-            printf("Марка велосипеда: %s\n", temp->bike_brand);
-            printf("Количество: %d\n", temp->quantity);
-            printf("Дата поставки: %s\n", temp->delivery_date);
-            printf("Цена за единицу: %.2f\n", temp->unit_price);
-            printf("Количество проданного товара: %d\n\n", temp->sold_quantity);
+            printf("Manufacturer: %s\n", temp->manufacturer);
+            printf("Bike Brand: %s\n", temp->bike_brand);
+            printf("Quantity: %d\n", temp->quantity);
+            printf("Delivery Date: %s\n", temp->delivery_date);
+            printf("Unit Price: %.2f\n", temp->unit_price);
+            printf("Sold Quantity: %d\n\n", temp->sold_quantity);
             found = 1;
         }
         temp = temp->next;
     }
     if (!found)
-        printf("Нет товаров в наличии\n");
+        printf("No products available\n");
 }
 
-// Функция для подсчета общей стоимости товаров заданного производителя
+// Function to calculate total cost by manufacturer
 float calculateTotalCostByManufacturer(Product* head, char manufacturer[]) {
     Product* temp = head;
     float total = 0.0;
@@ -214,7 +262,7 @@ float calculateTotalCostByManufacturer(Product* head, char manufacturer[]) {
     return total;
 }
 
-// Функция для подсчета общей стоимости проданных товаров
+// Function to calculate total cost of sold products
 float calculateTotalSoldCost(Product* head) {
     Product* temp = head;
     float total = 0.0;
@@ -225,19 +273,19 @@ float calculateTotalSoldCost(Product* head) {
     return total;
 }
 
-// Функция для обмена двух узлов
+// Function to swap two nodes
 void swapNodes(Product* a, Product* b) {
     Product temp = *a;
-    
-    // Копируем данные из b в a
+
+    // Copy data from b to a
     strcpy(a->manufacturer, b->manufacturer);
     strcpy(a->bike_brand, b->bike_brand);
     a->quantity = b->quantity;
     strcpy(a->delivery_date, b->delivery_date);
     a->unit_price = b->unit_price;
     a->sold_quantity = b->sold_quantity;
-    
-    // Копируем данные из temp (исходный a) в b
+
+    // Copy data from temp (original a) to b
     strcpy(b->manufacturer, temp.manufacturer);
     strcpy(b->bike_brand, temp.bike_brand);
     b->quantity = temp.quantity;
@@ -246,19 +294,19 @@ void swapNodes(Product* a, Product* b) {
     b->sold_quantity = temp.sold_quantity;
 }
 
-// Функция для сортировки списка по цене (пузырьковая сортировка)
-void sortByPrice(Product** head) {
+// Function to sort the deque by price using bubble sort
+void sortByPrice(Product** head, Product** tail) {
     if (*head == NULL || (*head)->next == NULL)
         return;
-    
+
     int swapped;
     Product* ptr1;
     Product* lptr = NULL;
-    
+
     do {
         swapped = 0;
         ptr1 = *head;
-        
+
         while (ptr1->next != lptr) {
             if (ptr1->unit_price > ptr1->next->unit_price) {
                 swapNodes(ptr1, ptr1->next);
@@ -270,34 +318,25 @@ void sortByPrice(Product** head) {
     } while (swapped);
 }
 
-// Функция для освобождения памяти
-void freeProducts(Product* head) {
-    Product* temp;
-    while (head != NULL) {
-        temp = head;
-        head = head->next;
-        free(temp);
-    }
-}
-
-// Функция для отображения меню
+// Function to display the menu
 void displayMenu() {
-    printf("\nМеню:\n");
-    printf("1. Добавить товар\n");
-    printf("2. Вывести все товары\n");
-    printf("3. Удалить товар\n");
-    printf("4. Редактировать данные товара\n");
-    printf("5. Сформировать список товаров заданного производителя\n");
-    printf("6. Вывести список товаров, которые поступили в заданный день\n");
-    printf("7. Вывести полную информацию о товаре по введенной марке велосипеда\n");
-    printf("8. Подсчитать общую стоимость товаров заданного производителя\n");
-    printf("9. Подсчитать общую стоимость проданных товаров\n");
-    printf("10. Сформировать список товаров, которые есть в наличии в магазине\n");
-    printf("11. Сортировать по цене\n");
-    printf("12. Выход\n");
-    printf("Выберите действие: ");
+    printf("\nMenu:\n");
+    printf("1. Add Product\n");
+    printf("2. Print All Products\n");
+    printf("3. Delete Product\n");
+    printf("4. Edit Product\n");
+    printf("5. List Products by Manufacturer\n");
+    printf("6. List Products by Delivery Date\n");
+    printf("7. Full Information of Product by Bike Brand\n");
+    printf("8. Calculate Total Cost by Manufacturer\n");
+    printf("9. Calculate Total Cost of Sold Products\n");
+    printf("10. List Available Products\n");
+    printf("11. Sort by Price\n");
+    printf("12. Exit\n");
+    printf("Select an action: ");
 }
 
+// Main function
 int main() {
     Product* head = NULL;
     Product* tail = NULL;
@@ -315,34 +354,34 @@ int main() {
     while (1) {
         displayMenu();
         scanf("%d", &choice);
-        while (getchar() != '\n'); // Очистка буфера ввода
+        while (getchar() != '\n'); // Clear input buffer
 
         switch (choice) {
             case 1:
-                printf("Введите производителя: ");
+                printf("Enter manufacturer: ");
                 fgets(manufacturer, sizeof(manufacturer), stdin);
                 manufacturer[strcspn(manufacturer, "\n")] = '\0';
                 
-                printf("Введите марку велосипеда: ");
+                printf("Enter bike brand: ");
                 fgets(bike_brand, sizeof(bike_brand), stdin);
                 bike_brand[strcspn(bike_brand, "\n")] = '\0';
                 
-                printf("Введите количество: ");
+                printf("Enter quantity: ");
                 scanf("%d", &quantity);
                 
-                while (getchar() != '\n'); // Очистка буфера
+                while (getchar() != '\n'); // Clear input buffer
                 
-                printf("Введите дату поставки: ");
+                printf("Enter delivery date: ");
                 fgets(delivery_date, sizeof(delivery_date), stdin);
                 delivery_date[strcspn(delivery_date, "\n")] = '\0';
                 
-                printf("Введите цену за единицу: ");
+                printf("Enter unit price: ");
                 scanf("%f", &unit_price);
                 
-                printf("Введите количество проданного товара: ");
+                printf("Enter sold quantity: ");
                 scanf("%d", &sold_quantity);
                 
-                addProduct(&head, &tail, manufacturer, bike_brand, quantity, delivery_date, unit_price, sold_quantity);
+                addToTail(&head, &tail, manufacturer, bike_brand, quantity, delivery_date, unit_price, sold_quantity);
                 break;
                 
             case 2:
@@ -350,74 +389,74 @@ int main() {
                 break;
                 
             case 3:
-                printf("Введите марку велосипеда для удаления: ");
+                printf("Enter bike brand to delete: ");
                 fgets(bike_brand, sizeof(bike_brand), stdin);
                 bike_brand[strcspn(bike_brand, "\n")] = '\0';
-                deleteProduct(&head, bike_brand);
+                deleteByBikeBrand(&head, &tail, bike_brand);
                 break;
                 
             case 4:
-                printf("Введите марку велосипеда для редактирования: ");
+                printf("Enter bike brand to edit: ");
                 fgets(bike_brand, sizeof(bike_brand), stdin);
                 bike_brand[strcspn(bike_brand, "\n")] = '\0';
                 
-                printf("Введите нового производителя: ");
+                printf("Enter new manufacturer: ");
                 fgets(new_manufacturer, sizeof(new_manufacturer), stdin);
                 new_manufacturer[strcspn(new_manufacturer, "\n")] = '\0';
                 
-                printf("Введите новую марку велосипеда: ");
+                printf("Enter new bike brand: ");
                 fgets(new_bike_brand, sizeof(new_bike_brand), stdin);
                 new_bike_brand[strcspn(new_bike_brand, "\n")] = '\0';
                 
-                printf("Введите новое количество: ");
+                printf("Enter new quantity: ");
                 scanf("%d", &new_quantity);
                 
                 while (getchar() != '\n');
                 
-                printf("Введите новую дату поставки: ");
+                printf("Enter new delivery date: ");
                 fgets(new_delivery_date, sizeof(new_delivery_date), stdin);
                 new_delivery_date[strcspn(new_delivery_date, "\n")] = '\0';
                 
-                printf("Введите новую цену за единицу: ");
+                printf("Enter new unit price: ");
                 scanf("%f", &new_unit_price);
                 
-                printf("Введите новое количество проданного товара: ");
+                printf("Enter new sold quantity: ");
                 scanf("%d", &new_sold_quantity);
                 
                 editProduct(head, bike_brand, new_manufacturer, new_bike_brand, new_quantity, new_delivery_date, new_unit_price, new_sold_quantity);
                 break;
                 
             case 5:
-                printf("Введите производителя для поиска: ");
+                printf("Enter manufacturer to search: ");
                 fgets(search_manufacturer, sizeof(search_manufacturer), stdin);
                 search_manufacturer[strcspn(search_manufacturer, "\n")] = '\0';
                 searchByManufacturer(head, search_manufacturer);
                 break;
                 
             case 6:
-                printf("Введите дату поставки для поиска: ");
+                printf("Enter delivery date to search: ");
                 fgets(search_date, sizeof(search_date), stdin);
                 search_date[strcspn(search_date, "\n")] = '\0';
                 searchByDate(head, search_date);
                 break;
                 
             case 7:
-                printf("Введите марку велосипеда для поиска: ");
+                printf("Enter bike brand to search: ");
                 fgets(search_bike_brand, sizeof(search_bike_brand), stdin);
                 search_bike_brand[strcspn(search_bike_brand, "\n")] = '\0';
                 searchByBikeBrand(head, search_bike_brand);
                 break;
                 
             case 8:
-                printf("Введите производителя для подсчета стоимости: ");
+                printf("Enter manufacturer to calculate total cost: ");
                 fgets(search_manufacturer, sizeof(search_manufacturer), stdin);
                 search_manufacturer[strcspn(search_manufacturer, "\n")] = '\0';
-                printf("Общая стоимость товаров производителя %s: %.2f\n", 
+                printf("Total cost of products by manufacturer %s: %.2f\n", 
                       search_manufacturer, calculateTotalCostByManufacturer(head, search_manufacturer));
                 break;
                 
             case 9:
-                printf("Общая стоимость проданных товаров: %.2f\n", calculateTotalSoldCost(head));
+                printf("Total cost of sold products: %.2f\n", calculateTotalSoldCost(head));
                 break;
                 
             case 10:
@@ -425,17 +464,17 @@ int main() {
                 break;
                 
             case 11:
-                sortByPrice(&head);
-                printf("Список отсортирован по цене\n");
+                sortByPrice(&head, &tail);
+                printf("Product list sorted by price\n");
                 break;
                 
             case 12:
                 freeProducts(head);
-                printf("Программа завершена\n");
+                printf("Program terminated\n");
                 return 0;
                 
             default:
-                printf("Неправильный выбор\n");
+                printf("Invalid choice\n");
         }
     }
 }
